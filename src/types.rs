@@ -107,9 +107,19 @@ impl Project {
 			.map(|entity| EntityRef::from(self, entity))
 	}
 
+	pub fn scenes(&self) -> impl Iterator<Item=SceneRef<'_>> {
+		self.scenes.iter()
+			.map(move |entity| SceneRef::from(self, entity))
+	}
+
 	pub fn entities(&self) -> impl Iterator<Item=EntityRef<'_>> {
 		self.entities.iter()
 			.map(move |entity| EntityRef::from(self, entity))
+	}
+
+	pub fn entities_with_prefix<'t, 'p: 't>(&'t self, prefix: &'p str) -> impl Iterator<Item=EntityRef<'t>> {
+		self.entities()
+			.filter(move |entity| entity.name.starts_with(prefix))
 	}
 }
 
@@ -132,6 +142,11 @@ impl<'t> SceneRef<'t> {
 		self.scene.entities.iter()
 			.map(move |&id| &file.entities[id as usize - 1])
 			.map(move |entity| EntityRef::from(file, entity))
+	}
+
+	pub fn entities_with_prefix<'p: 't>(&self, prefix: &'p str) -> impl Iterator<Item=EntityRef<'t>> {
+		self.entities()
+			.filter(move |entity| entity.name.starts_with(prefix))
 	}
 
 	pub fn find_entity(&self, name: &str) -> Option<EntityRef<'t>> {
