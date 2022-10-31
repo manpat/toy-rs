@@ -10,6 +10,7 @@ STRUCT_U32 = struct.Struct('=I')
 
 STRUCT_UF16 = struct.Struct('=H')
 STRUCT_F32 = struct.Struct('=f')
+STRUCT_V2 = struct.Struct('=ff')
 STRUCT_V3 = struct.Struct('=fff')
 STRUCT_V4 = struct.Struct('=ffff')
 
@@ -62,6 +63,9 @@ class Serializer:
 
 	def write_f32(self, v):
 		self.write_raw(STRUCT_F32, v)
+
+	def write_v2(self, v1, v2):
+		self.write_raw(STRUCT_V2, v1, v2)
 
 	def write_v3(self, v1, v2, v3):
 		self.write_raw(STRUCT_V3, v1, v2, v3)

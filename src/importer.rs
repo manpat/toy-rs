@@ -6,7 +6,8 @@ use common::*;
 use failure::{ensure, bail, format_err};
 
 // version 4: convert vertex colours from srgb to linear
-const SCENE_VERSION: u8 = 4;
+// version 5: export uvs
+const SCENE_VERSION: u8 = 5;
 
 pub fn load(data: &[u8]) -> ToyResult<Project> {
 	let reader = ToyReader { buf: data };
@@ -117,6 +118,28 @@ impl<'d> ToyReader<'d> {
 			})
 		}
 
+		let num_uv_layers = self.read_u8()? as usize;
+		let mut uv_data = Vec::with_capacity(num_uv_layers);
+		for _ in 0..num_uv_layers {
+			self.expect_tag(b"MDUV")?;
+
+			let layer_name = self.read_string()?;
+			let num_points = self.read_u16()? as usize;
+
+			ensure!(num_points == num_vertices, "UV layer '{}' different size to vertex list", layer_name);
+
+			let mut layer_data = Vec::with_capacity(num_points);
+			for _ in 0..num_points {
+				let point = Vec2::new(self.read_uf16()?, self.read_uf16()?);
+				layer_data.push(point);
+			}
+
+			uv_data.push(MeshUvData {
+				name: layer_name,
+				data: layer_data,
+			})
+		}
+
 		let mut animation_data = None;
 
 		if !self.buf.is_empty() {
@@ -128,6 +151,7 @@ impl<'d> ToyReader<'d> {
 			positions: vertices,
 			indices,
 			color_data,
+			uv_data,
 			animation_data,
 		})
 	}

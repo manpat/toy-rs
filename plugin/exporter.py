@@ -18,7 +18,8 @@ from .util import swap_coords, swap_coords_scale
 # https://github.com/vika-sonne/batch-egg-file-animation-export/blob/master/__init__.py
 
 # version 4: convert vertex colours from srgb to linear
-VERSION = 4
+# version 4: export uvs
+VERSION = 5
 
 
 

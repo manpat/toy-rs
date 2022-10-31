@@ -6,10 +6,10 @@ from . import anim
 
 Mesh = collections.namedtuple(
 	"Mesh",
-	"vertices triangles color_data animation_data"
+	"vertices triangles color_data uv_data animation_data"
 )
 
-Vertex = collections.namedtuple("Vertex", "position layers weights")
+Vertex = collections.namedtuple("Vertex", "position color_layers uv_layers weights")
 Bone = collections.namedtuple("Bone", "name head tail")
 
 
@@ -29,7 +29,7 @@ def collect_mesh(scene, depsgraph, obj):
 
 	# Triangulate and bake deformations
 	bm = bmesh.new()
-	bm.from_object(obj, depsgraph, deform=True)
+	bm.from_object(obj, depsgraph)
 	bmesh.ops.triangulate(bm, faces=bm.faces)
 
 	bm.verts.ensure_lookup_table()
@@ -46,19 +46,30 @@ def collect_mesh(scene, depsgraph, obj):
 	layer_deform = bm.verts.layers.deform.active
 
 	color_layers = bm.loops.layers.color.items()
+	uv_layers = bm.loops.layers.uv.items()
 	verts = []
 	tris = []
 
 	# TODO: find a faster way
-	def cache_vertex(vpos, vlayers, vweights):
-		for i, vb in enumerate(verts):
-			if vpos != vb.position:
-				continue
 
-			for la, lb in zip(vlayers, vb.layers):
-				if la != lb:
-					break
-			else:
+	def vertex_equivalent(vertex, vpos, vcolorlayers, vuvlayers):
+		if vpos != vertex.position:
+			return False
+
+		for la, lb in zip(vcolorlayers, vertex.color_layers):
+			if la != lb:
+				return False
+
+		for la, lb in zip(vuvlayers, vertex.uv_layers):
+			if la != lb:
+				return False
+
+		return True
+
+
+	def cache_vertex(vpos, vcolorlayers, vuvlayers, vweights):
+		for i, vb in enumerate(verts):
+			if vertex_equivalent(vb, vpos, vcolorlayers, vuvlayers):
 				return i
 
 		# Order by weight so if weights need to be dropped, the most important ones stay
@@ -66,19 +77,25 @@ def collect_mesh(scene, depsgraph, obj):
 			vweights = sorted(vweights, key=lambda x: x[1], reverse=True)
 
 		# NOTE: not comparing weights
-		verts.append(Vertex(vpos, vlayers, vweights))
+		verts.append(Vertex(vpos, vcolorlayers, vuvlayers, vweights))
 		return len(verts)-1
+
 
 	# Extract vertices and indices from bmesh
 	for face in bm.faces:
 		for loop in face.loops:
-			vlayers = [loop[layer_id] for _, layer_id in color_layers]
-			vweights = layer_deform and loop.vert[layer_deform].items() or []
-			tris.append(cache_vertex(loop.vert.co, vlayers, vweights))
+			vcolorlayers = [loop[layer_id] for _, layer_id in color_layers]
+			vuvlayers = [loop[layer_id].uv for _, layer_id in uv_layers]
+			vweights = layer_deform and loop.vert[layer_deform].items() or None
+			tris.append(cache_vertex(loop.vert.co, vcolorlayers, vuvlayers, vweights))
 
 	vert_positions = [swap_coords(v.position) for v in verts]
+	uv_data = [
+		(name, [v.uv_layers[i].copy() for v in verts])
+		for i, (name, _) in enumerate(uv_layers)
+	]
 	color_data = [
-		(name, [v.layers[i].copy() for v in verts])
+		(name, [v.color_layers[i].copy() for v in verts])
 		for i, (name, _) in enumerate(color_layers)
 	]
 
@@ -113,11 +130,10 @@ def collect_mesh(scene, depsgraph, obj):
 		}
 
 	# TODO: normal data
-	# TODO: uv data
 
 	bm.free()
 
-	return Mesh(vert_positions, tris, color_data, animation_data)
+	return Mesh(vert_positions, tris, color_data, uv_data, animation_data)
 
 
 def write_mesh(ser, mesh):
@@ -152,6 +168,15 @@ def write_mesh(ser, mesh):
 			# but since we're storing floats we might as well store linear colours.
 			# although, TODO: do we actually *want* to be storing floats? might be a bit excessive
 			ser.write_v4(*srgb_to_linear(el))
+
+	ser.write_u8(len(mesh.uv_data))
+	for name, data in mesh.uv_data:
+		ser.write_tag("MDUV")
+		ser.write_string(name)
+		ser.write_u16(len(data))
+		for el in data:
+			ser.write_uf16(el[0])
+			ser.write_uf16(el[1])
 
 	if mesh.animation_data is not None:
 		bones = mesh.animation_data['bones']

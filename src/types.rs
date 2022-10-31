@@ -29,6 +29,7 @@ pub struct MeshData {
 	pub positions: Vec<Vec3>,
 	pub indices: Vec<u16>,
 	pub color_data: Vec<MeshColorData>,
+	pub uv_data: Vec<MeshUvData>,
 	pub animation_data: Option<MeshAnimationData>,
 }
 
@@ -36,6 +37,12 @@ pub struct MeshData {
 pub struct MeshColorData {
 	pub name: String,
 	pub data: Vec<Vec4>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MeshUvData {
+	pub name: String,
+	pub data: Vec<Vec2>,
 }
 
 
@@ -127,6 +134,12 @@ impl MeshData {
 	pub fn color_data<'s>(&self, name: impl Into<Option<&'s str>>) -> Option<&MeshColorData> {
 		let name = name.into().unwrap_or(crate::DEFAULT_COLOR_DATA_NAME);
 		self.color_data.iter()
+			.find(|l| l.name == name)
+	}
+
+	pub fn uv_data<'s>(&self, name: impl Into<Option<&'s str>>) -> Option<&MeshUvData> {
+		let name = name.into().unwrap_or(crate::DEFAULT_COLOR_DATA_NAME);
+		self.uv_data.iter()
 			.find(|l| l.name == name)
 	}
 }
