@@ -3,19 +3,19 @@ use std::ops::Deref;
 
 #[derive(Debug, Clone)]
 pub struct Project {
-	pub scenes: Vec<SceneData>,
-	pub entities: Vec<EntityData>,
-	pub meshes: Vec<MeshData>,
+	pub scenes: Vec<Scene>,
+	pub entities: Vec<Entity>,
+	pub meshes: Vec<Mesh>,
 }
 
 #[derive(Debug, Clone)]
-pub struct SceneData {
+pub struct Scene {
 	pub name: String,
 	pub entities: Vec<u32>
 }
 
 #[derive(Debug, Clone)]
-pub struct EntityData {
+pub struct Entity {
 	pub name: String,
 	pub mesh_id: u16,
 
@@ -25,22 +25,22 @@ pub struct EntityData {
 }
 
 #[derive(Debug, Clone)]
-pub struct MeshData {
+pub struct Mesh {
 	pub positions: Vec<Vec3>,
 	pub indices: Vec<u16>,
-	pub color_data: Vec<MeshColorData>,
-	pub uv_data: Vec<MeshUvData>,
+	pub color_layers: Vec<MeshColorLayer>,
+	pub uv_layers: Vec<MeshUvLayer>,
 	pub animation_data: Option<MeshAnimationData>,
 }
 
 #[derive(Debug, Clone)]
-pub struct MeshColorData {
+pub struct MeshColorLayer {
 	pub name: String,
 	pub data: Vec<Vec4>,
 }
 
 #[derive(Debug, Clone)]
-pub struct MeshUvData {
+pub struct MeshUvLayer {
 	pub name: String,
 	pub data: Vec<Vec2>,
 }
@@ -92,13 +92,13 @@ pub struct MeshAnimationFrame {
 #[derive(Debug, Clone, Copy)]
 pub struct SceneRef<'toy> {
 	file: &'toy Project,
-	scene: &'toy SceneData,
+	scene: &'toy Scene,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct EntityRef<'toy> {
 	file: &'toy Project,
-	entity: &'toy EntityData,
+	entity: &'toy Entity,
 }
 
 impl Project {
@@ -130,22 +130,20 @@ impl Project {
 	}
 }
 
-impl MeshData {
-	pub fn color_data<'s>(&self, name: impl Into<Option<&'s str>>) -> Option<&MeshColorData> {
-		let name = name.into().unwrap_or(crate::DEFAULT_COLOR_DATA_NAME);
-		self.color_data.iter()
+impl Mesh {
+	pub fn color_layer_by_name<'s>(&self, name: &'s str) -> Option<&MeshColorLayer> {
+		self.color_layers.iter()
 			.find(|l| l.name == name)
 	}
 
-	pub fn uv_data<'s>(&self, name: impl Into<Option<&'s str>>) -> Option<&MeshUvData> {
-		let name = name.into().unwrap_or(crate::DEFAULT_COLOR_DATA_NAME);
-		self.uv_data.iter()
+	pub fn uv_layer_by_name<'s>(&self, name: &'s str) -> Option<&MeshUvLayer> {
+		self.uv_layers.iter()
 			.find(|l| l.name == name)
 	}
 }
 
 impl<'t> SceneRef<'t> {
-	pub fn from(file: &'t Project, scene: &'t SceneData) -> SceneRef<'t> {
+	pub fn from(file: &'t Project, scene: &'t Scene) -> SceneRef<'t> {
 		SceneRef { file, scene }
 	}
 
@@ -168,16 +166,16 @@ impl<'t> SceneRef<'t> {
 }
 
 impl Deref for SceneRef<'_> {
-	type Target = SceneData;
+	type Target = Scene;
 	fn deref(&self) -> &Self::Target { self.scene }
 }
 
 impl<'t> EntityRef<'t> {
-	pub fn from(file: &'t Project, entity: &'t EntityData) -> EntityRef<'t> {
+	pub fn from(file: &'t Project, entity: &'t Entity) -> EntityRef<'t> {
 		EntityRef { file, entity }
 	}
 
-	pub fn mesh_data(&self) -> Option<&'t MeshData> {
+	pub fn mesh(&self) -> Option<&'t Mesh> {
 		let mesh_id = self.entity.mesh_id;
 
 		if mesh_id == 0 {
@@ -188,7 +186,7 @@ impl<'t> EntityRef<'t> {
 	}
 }
 
-impl EntityData {
+impl Entity {
 	pub fn transform(&self) -> Mat3x4 {
 		Mat3x4::translate(self.position)
 			* self.rotation.to_mat3x4()
@@ -197,7 +195,7 @@ impl EntityData {
 }
 
 impl Deref for EntityRef<'_> {
-	type Target = EntityData;
+	type Target = Entity;
 	fn deref(&self) -> &Self::Target { self.entity }
 }
 

@@ -74,7 +74,7 @@ impl<'d> ToyReader<'d> {
 		Ok(section)
 	}
 
-	fn read_mesh(&mut self) -> ToyResult<MeshData> {
+	fn read_mesh(&mut self) -> ToyResult<Mesh> {
 		let num_vertices = self.read_u16()? as usize;
 		let mut vertices = Vec::with_capacity(num_vertices);
 		for _ in 0..num_vertices {
@@ -99,7 +99,7 @@ impl<'d> ToyReader<'d> {
 		}
 
 		let num_color_layers = self.read_u8()? as usize;
-		let mut color_data = Vec::with_capacity(num_color_layers);
+		let mut color_layers = Vec::with_capacity(num_color_layers);
 		for _ in 0..num_color_layers {
 			self.expect_tag(b"MDTA")?;
 
@@ -112,14 +112,14 @@ impl<'d> ToyReader<'d> {
 				layer_data.push(self.read_vec4()?);
 			}
 
-			color_data.push(MeshColorData {
+			color_layers.push(MeshColorLayer {
 				name: layer_name,
 				data: layer_data,
 			})
 		}
 
 		let num_uv_layers = self.read_u8()? as usize;
-		let mut uv_data = Vec::with_capacity(num_uv_layers);
+		let mut uv_layers = Vec::with_capacity(num_uv_layers);
 		for _ in 0..num_uv_layers {
 			self.expect_tag(b"MDUV")?;
 
@@ -134,7 +134,7 @@ impl<'d> ToyReader<'d> {
 				layer_data.push(point);
 			}
 
-			uv_data.push(MeshUvData {
+			uv_layers.push(MeshUvLayer {
 				name: layer_name,
 				data: layer_data,
 			})
@@ -147,11 +147,11 @@ impl<'d> ToyReader<'d> {
 			animation_data = Some(section.read_animation_data()?);
 		}
 
-		Ok(MeshData {
+		Ok(Mesh {
 			positions: vertices,
 			indices,
-			color_data,
-			uv_data,
+			color_layers,
+			uv_layers,
 			animation_data,
 		})
 	}
@@ -249,8 +249,8 @@ impl<'d> ToyReader<'d> {
 		Ok(frames)
 	}
 
-	fn read_entity(&mut self) -> ToyResult<EntityData> {
-		Ok(EntityData {
+	fn read_entity(&mut self) -> ToyResult<Entity> {
+		Ok(Entity {
 			name: self.read_string()?,
 			position: self.read_vec3()?,
 			rotation: self.read_quat()?,
@@ -259,7 +259,7 @@ impl<'d> ToyReader<'d> {
 		})
 	}
 
-	fn read_scene(&mut self) -> ToyResult<SceneData> {
+	fn read_scene(&mut self) -> ToyResult<Scene> {
 		let name = self.read_string()?;
 		let num_entities = self.read_u32()? as usize;
 		let mut entities = Vec::with_capacity(num_entities);
@@ -267,7 +267,7 @@ impl<'d> ToyReader<'d> {
 			entities.push(self.read_u32()?);
 		}
 
-		Ok(SceneData {
+		Ok(Scene {
 			name,
 			entities
 		})
