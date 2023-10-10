@@ -3,7 +3,7 @@ use crate::ToyResult;
 use std::convert::TryInto;
 
 use common::*;
-use failure::{ensure, bail, format_err};
+use anyhow::{ensure, bail, format_err};
 
 // version 4: convert vertex colours from srgb to linear
 // version 5: export uvs

@@ -8,4 +8,4 @@ pub use self::importer::*;
 
 pub const DEFAULT_COLOR_DATA_NAME: &'static str = "Col";
 
-pub type ToyResult<T> = Result<T, failure::Error>;
+pub type ToyResult<T> = anyhow::Result<T>;
