@@ -203,10 +203,13 @@ impl Deref for EntityRef<'_> {
 // TODO: mesh building
 
 
-pub trait EntityCollection<'t> {
+pub trait EntityCollection<'t> where Self: 't {
 	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>>;
 
-	fn into_entities_with_prefix<'p>(self, prefix: &'p str) -> impl Iterator<Item=EntityRef<'t>> + 'p where Self : Sized, Self: 't, 't: 'p {
+	fn into_entities_with_prefix<'p>(self, prefix: &'p str) -> impl Iterator<Item=EntityRef<'t>> + 'p
+		where Self : Sized
+			, 't: 'p
+	{
 		self.into_entities()
 			.filter(move |entity| entity.name.starts_with(prefix))
 	}
@@ -225,7 +228,7 @@ impl<'t> EntityCollection<'t> for SceneRef<'t> {
 }
 
 impl<'t, T> EntityCollection<'t> for T
-	where T: Iterator<Item=EntityRef<'t>>
+	where T: Iterator<Item=EntityRef<'t>> + 't
 {
 	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> {
 		self
