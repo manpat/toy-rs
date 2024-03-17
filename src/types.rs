@@ -201,3 +201,33 @@ impl Deref for EntityRef<'_> {
 
 // TODO: entity queries
 // TODO: mesh building
+
+
+pub trait EntityCollection<'t> {
+	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>>;
+
+	fn into_entities_with_prefix<'p>(self, prefix: &'p str) -> impl Iterator<Item=EntityRef<'t>> + 'p where Self : Sized, Self: 't, 't: 'p {
+		self.into_entities()
+			.filter(move |entity| entity.name.starts_with(prefix))
+	}
+}
+
+impl<'t> EntityCollection<'t> for &'t Project {
+	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> {
+		self.entities()
+	}
+}
+
+impl<'t> EntityCollection<'t> for SceneRef<'t> {
+	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> {
+		self.entities()
+	}
+}
+
+impl<'t, T> EntityCollection<'t> for T
+	where T: Iterator<Item=EntityRef<'t>>
+{
+	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> {
+		self
+	}
+}
