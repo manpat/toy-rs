@@ -1,6 +1,5 @@
 use crate::types::*;
 use crate::ToyResult;
-use std::convert::TryInto;
 
 use common::*;
 use anyhow::{ensure, bail, format_err};
