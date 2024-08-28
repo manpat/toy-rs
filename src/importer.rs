@@ -333,12 +333,10 @@ impl<'d> ToyReader<'d> {
 	}
 
 	fn read_quat(&mut self) -> ToyResult<Quat> {
-		Ok(Quat::from_raw(
-			self.read_f32()?,
-			self.read_f32()?,
-			self.read_f32()?,
-			self.read_f32()?
-		))
+		Ok(Quat {
+			imaginary: self.read_vec3()?,
+			real: self.read_f32()?
+		})
 	}
 
 	fn read_string(&mut self) -> ToyResult<String> {
