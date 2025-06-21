@@ -147,7 +147,7 @@ impl<'t> SceneRef<'t> {
 		SceneRef { file, scene }
 	}
 
-	pub fn entities(&self) -> impl Iterator<Item=EntityRef<'t>> {
+	pub fn entities(&self) -> impl Iterator<Item=EntityRef<'t>> + use<'t> {
 		let file = self.file;
 
 		self.scene.entities.iter()
@@ -155,7 +155,7 @@ impl<'t> SceneRef<'t> {
 			.map(move |entity| EntityRef::from(file, entity))
 	}
 
-	pub fn entities_with_prefix<'p: 't>(&self, prefix: &'p str) -> impl Iterator<Item=EntityRef<'t>> {
+	pub fn entities_with_prefix<'p: 't>(&self, prefix: &'p str) -> impl Iterator<Item=EntityRef<'t>> + use<'t> {
 		self.entities()
 			.filter(move |entity| entity.name.starts_with(prefix))
 	}
@@ -206,7 +206,7 @@ impl Deref for EntityRef<'_> {
 pub trait EntityCollection<'t> where Self: 't {
 	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>>;
 
-	fn into_entities_with_prefix<'p>(self, prefix: &'p str) -> impl Iterator<Item=EntityRef<'t>> + 'p
+	fn into_entities_with_prefix<'p>(self, prefix: &'p str) -> impl Iterator<Item=EntityRef<'t>> + use<'t, 'p, Self>
 		where Self : Sized
 			, 't: 'p
 	{
@@ -216,13 +216,13 @@ pub trait EntityCollection<'t> where Self: 't {
 }
 
 impl<'t> EntityCollection<'t> for &'t Project {
-	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> {
+	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> + use<'t> {
 		self.entities()
 	}
 }
 
 impl<'t> EntityCollection<'t> for SceneRef<'t> {
-	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> {
+	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> + use<'t> {
 		self.entities()
 	}
 }
@@ -230,7 +230,7 @@ impl<'t> EntityCollection<'t> for SceneRef<'t> {
 impl<'t, T> EntityCollection<'t> for T
 	where T: Iterator<Item=EntityRef<'t>> + 't
 {
-	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> {
+	fn into_entities(self) -> impl Iterator<Item=EntityRef<'t>> + use<'t, T> {
 		self
 	}
 }
